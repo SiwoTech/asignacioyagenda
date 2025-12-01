@@ -72,7 +72,7 @@
 				<td>
 					<button 
 						class="btn btn-sm btn-assign-agenda shadow-sm" 
-						onclick="openAssignModal(<?php echo $ver[0] ?>, '<?php echo htmlspecialchars(addslashes($ver[2]), ENT_QUOTES, 'UTF-8') ?>', '<?php echo htmlspecialchars(addslashes($ver[10]), ENT_QUOTES, 'UTF-8') ?>')" 
+						onclick="openAssignModal(<?php echo $ver[0] ?>, '<?php echo htmlspecialchars($ver[2], ENT_QUOTES, 'UTF-8') ?>', '<?php echo htmlspecialchars($ver[10], ENT_QUOTES, 'UTF-8') ?>')" 
 						title="Asignar agenda al operador">
 						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-calendar-plus" viewBox="0 0 16 16">
 						  <path d="M8 7a.5.5 0 0 1 .5.5V9H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V10H6a.5.5 0 0 1 0-1h1.5V7.5A.5.5 0 0 1 8 7z"/>

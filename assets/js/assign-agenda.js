@@ -143,10 +143,6 @@
             isProcessing = false;
             updateButtonState(false);
         });
-        
-        // Establecer fecha mínima como hoy
-        var today = new Date().toISOString().split('T')[0];
-        $('#agenda_date').attr('min', today);
     }
     
     /**
@@ -162,6 +158,10 @@
         // Guardar datos del operador
         currentOperatorId = operatorId;
         currentOperatorName = operatorName;
+        
+        // Establecer fecha mínima como hoy (actualizada cada vez que se abre el modal)
+        var today = new Date().toISOString().split('T')[0];
+        $('#agenda_date').attr('min', today);
         
         // Limpiar formulario
         $('#formAsignarAgenda')[0].reset();
@@ -344,17 +344,36 @@
     }
     
     /**
+     * Escapa HTML para prevenir XSS
+     * @param {string} text - Texto a escapar
+     * @returns {string} - Texto escapado
+     */
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+    
+    /**
      * Muestra una alerta en el contenedor de alertas
      * @param {string} type - Tipo de alerta (success, danger, warning, info)
      * @param {string} message - Mensaje a mostrar
      */
     function showAlert(type, message) {
-        var alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-            </div>
-        `;
+        // Validar tipo de alerta contra whitelist
+        var validTypes = ['success', 'danger', 'warning', 'info'];
+        if (validTypes.indexOf(type) === -1) {
+            type = 'info';
+        }
+        
+        // Escapar el mensaje para prevenir XSS
+        var safeMessage = escapeHtml(message);
+        
+        var alertHtml = 
+            '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' +
+                safeMessage +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>' +
+            '</div>';
         
         $('#agendaAlertContainer').html(alertHtml);
     }

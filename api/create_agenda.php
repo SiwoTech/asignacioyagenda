@@ -93,75 +93,54 @@ if ($operator_id <= 0) {
     exit;
 }
 
-// Conexión a la base de datos
-// Usamos las credenciales del archivo de conexión existente
-$hostname = "localhost";
-$username_db = "u826340212_orangedb";
-$password_db = "Cwo9982061148";
-$database = "u826340212_orangedb";
+// Validar centro de trabajo contra whitelist
+$centrosPermitidos = ['Cancun', 'Playa', 'Xcaret'];
+if (!in_array($centro, $centrosPermitidos)) {
+    $centro = 'Cancun'; // Valor por defecto si no es válido
+}
 
-// Conexión principal (operadores)
-$conexion = new mysqli($hostname, $username_db, $password_db, $database);
+// Conexión a la base de datos usando la función existente
+require_once __DIR__ . '/../php/conexion.php';
+$conexion = conexion();
 
-if ($conexion->connect_error) {
+if (!$conexion) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Error de conexión a la base de datos.']);
     exit;
 }
 
-$conexion->set_charset('utf8mb4');
+mysqli_set_charset($conexion, 'utf8mb4');
 
 // Iniciar transacción
-$conexion->begin_transaction();
+mysqli_begin_transaction($conexion);
 
 try {
     // Verificar que el operador existe
-    $stmt = $conexion->prepare("SELECT id, nombre, centro FROM operadores WHERE id = ? AND status = 0");
-    $stmt->bind_param("i", $operator_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt = mysqli_prepare($conexion, "SELECT id, nombre, centro FROM operadores WHERE id = ? AND status = 0");
+    mysqli_stmt_bind_param($stmt, "i", $operator_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
     
-    if ($result->num_rows === 0) {
+    if (mysqli_num_rows($result) === 0) {
         throw new Exception('Operador no encontrado o inactivo.');
     }
     
-    $operador = $result->fetch_assoc();
-    $stmt->close();
+    $operador = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
     
-    // Usar el centro del operador si no se especificó
-    if ($centro === 'Cancun' && !empty($operador['centro'])) {
+    // Usar el centro del operador si no se especificó y es válido
+    if (!empty($operador['centro']) && in_array($operador['centro'], $centrosPermitidos)) {
         $centro = $operador['centro'];
     }
     
-    // Crear la tabla agendas si no existe
-    $createTableSQL = "CREATE TABLE IF NOT EXISTS agendas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        operator_id INT NOT NULL,
-        operator_name VARCHAR(255) NOT NULL,
-        date DATE NOT NULL,
-        start_time TIME NOT NULL,
-        end_time TIME NOT NULL,
-        subject VARCHAR(255) NOT NULL,
-        notes TEXT,
-        location VARCHAR(255),
-        centro VARCHAR(50) DEFAULT 'Cancun',
-        color VARCHAR(20) DEFAULT '#E55B26',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_operator_id (operator_id),
-        INDEX idx_date (date),
-        INDEX idx_centro (centro)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
-    $conexion->query($createTableSQL);
-    
     // Insertar en la tabla agendas
-    $stmt = $conexion->prepare(
+    // Nota: La tabla debe existir previamente. Ejecutar sql/create_agendas_table.sql si no existe.
+    $stmt = mysqli_prepare($conexion, 
         "INSERT INTO agendas (operator_id, operator_name, date, start_time, end_time, subject, notes, location, centro, color) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     
-    $stmt->bind_param(
+    mysqli_stmt_bind_param($stmt, 
         "isssssssss",
         $operator_id,
         $operator_name,
@@ -175,57 +154,63 @@ try {
         $color
     );
     
-    if (!$stmt->execute()) {
-        throw new Exception('Error al insertar la agenda: ' . $stmt->error);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception('Error al insertar la agenda: ' . mysqli_stmt_error($stmt));
     }
     
-    $agenda_id = $conexion->insert_id;
-    $stmt->close();
+    $agenda_id = mysqli_insert_id($conexion);
+    mysqli_stmt_close($stmt);
     
     // También insertar en la tabla de calendario correspondiente (cancun o playa)
-    // Conexión a la base de datos de agenda
-    $hostname_agenda = "localhost";
-    $username_agenda = "u826340212_agenda";
-    $password_agenda = "Cwo9982061148";
-    $database_agenda = "u826340212_agenda";
+    // Conexión separada a la base de datos de agenda
+    $conexion_agenda = mysqli_connect("localhost", "u826340212_agenda", "Cwo9982061148", "u826340212_agenda");
     
-    $conexion_agenda = new mysqli($hostname_agenda, $username_agenda, $password_agenda, $database_agenda);
-    
-    if (!$conexion_agenda->connect_error) {
-        $conexion_agenda->set_charset('utf8mb4');
+    if ($conexion_agenda && !mysqli_connect_error()) {
+        mysqli_set_charset($conexion_agenda, 'utf8mb4');
         
-        // Determinar la tabla según el centro
-        $tabla_calendario = strtolower($centro) === 'playa' ? 'playa' : 'cancun';
+        // Determinar la tabla según el centro (whitelist segura)
+        $tabla_calendario = (strtolower($centro) === 'playa') ? 'playa' : 'cancun';
         
         // Formatear fechas para el calendario
         $inicio = $date . ' ' . $start_time;
         $fin = $date . ' ' . $end_time;
         
-        // Insertar en la tabla de calendario
-        $stmt_cal = $conexion_agenda->prepare(
-            "INSERT INTO $tabla_calendario (titulo, operador, servicio, color, inicio, fin, observa) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        
+        // Usar consulta con nombre de tabla fijo para evitar inyección SQL
         $titulo = $location ?: $subject;
-        $stmt_cal->bind_param(
-            "sssssss",
-            $titulo,
-            $operator_name,
-            $subject,
-            $color,
-            $inicio,
-            $fin,
-            $notes
-        );
         
-        $stmt_cal->execute();
-        $stmt_cal->close();
-        $conexion_agenda->close();
+        if ($tabla_calendario === 'playa') {
+            $stmt_cal = mysqli_prepare($conexion_agenda,
+                "INSERT INTO playa (titulo, operador, servicio, color, inicio, fin, observa) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+        } else {
+            $stmt_cal = mysqli_prepare($conexion_agenda,
+                "INSERT INTO cancun (titulo, operador, servicio, color, inicio, fin, observa) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+        }
+        
+        if ($stmt_cal) {
+            mysqli_stmt_bind_param($stmt_cal, 
+                "sssssss",
+                $titulo,
+                $operator_name,
+                $subject,
+                $color,
+                $inicio,
+                $fin,
+                $notes
+            );
+            
+            mysqli_stmt_execute($stmt_cal);
+            mysqli_stmt_close($stmt_cal);
+        }
+        
+        mysqli_close($conexion_agenda);
     }
     
     // Confirmar transacción
-    $conexion->commit();
+    mysqli_commit($conexion);
     
     // Respuesta exitosa
     echo json_encode([
@@ -248,7 +233,7 @@ try {
     
 } catch (Exception $e) {
     // Revertir transacción en caso de error
-    $conexion->rollback();
+    mysqli_rollback($conexion);
     
     http_response_code(500);
     echo json_encode([
@@ -257,5 +242,5 @@ try {
     ]);
 }
 
-$conexion->close();
+mysqli_close($conexion);
 ?>
