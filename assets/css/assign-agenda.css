@@ -1,0 +1,145 @@
+/**
+ * Estilos para el modal de asignación de agenda
+ * Mantiene el estilo naranja CWO del resto de la aplicación
+ */
+
+/* Variables de color CWO */
+:root {
+    --naranja-cwo: #E55B26;
+    --naranja-cwo-dark: #c44a1f;
+    --naranja-cwo-light: #f27c4d;
+}
+
+/* Modal de asignación de agenda */
+#modalAsignarAgenda .modal-header {
+    background-color: var(--naranja-cwo);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+}
+
+#modalAsignarAgenda .modal-title {
+    color: #fff;
+    font-weight: 700;
+}
+
+#modalAsignarAgenda .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+#modalAsignarAgenda .modal-content {
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(229, 91, 38, 0.10);
+}
+
+#modalAsignarAgenda .form-label {
+    font-weight: 500;
+    color: #333;
+}
+
+#modalAsignarAgenda .form-control:focus {
+    border-color: var(--naranja-cwo);
+    box-shadow: 0 0 0 0.2rem rgba(229, 91, 38, 0.25);
+}
+
+#modalAsignarAgenda .form-control {
+    border-radius: 6px;
+}
+
+/* Botón de asignar operador */
+.btn-assign-agenda {
+    background-color: var(--naranja-cwo);
+    color: #fff;
+    border: none;
+    font-weight: 500;
+    transition: background 0.2s;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+}
+
+.btn-assign-agenda:hover,
+.btn-assign-agenda:focus {
+    background-color: var(--naranja-cwo-dark);
+    color: #fff;
+}
+
+.btn-assign-agenda:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Spinner de carga */
+.btn-assign-agenda .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+/* Mensajes de error y éxito */
+#agendaAlertContainer {
+    margin-bottom: 1rem;
+}
+
+#agendaAlertContainer .alert {
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+}
+
+#agendaAlertContainer .alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+#agendaAlertContainer .alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+/* Información del operador en el modal */
+.operator-info-badge {
+    background-color: var(--naranja-cwo-light);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    display: inline-block;
+    font-weight: 500;
+}
+
+/* Campo de ubicación opcional */
+.optional-label::after {
+    content: " (opcional)";
+    font-weight: normal;
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+/* Selector de color */
+.color-select-option {
+    font-weight: 500;
+}
+
+/* Validación de campos */
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+.invalid-feedback {
+    color: #dc3545;
+    font-size: 0.875em;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    #modalAsignarAgenda .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    #modalAsignarAgenda .modal-body {
+        padding: 1rem;
+    }
+}
